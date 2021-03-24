@@ -63,7 +63,7 @@ Sidebar {.sidebar}
 ```{r, fig.width=2}
 h4("Introduction")
 
-helpText("Our Gitcoin Grant Round 9 Hackathon submission is a tool designed to give Badgers clearer insight into how their favorite token is being adopted by the DeFi ecosystem. Our application does this by crawling the liquidity pools on Uniswap that have either wBTC or renBTC as a base token. At a quick glance, if we measure adoption by the number of transactions and tokens deployed over time,  market acceptance has definitely been going up. At the time of this snapshot, there were over 180 pools with at least one BTC denominated token and these pools contained more than $2,200,000 in liquidity on average.")
+helpText("Our Gitcoin Grant Round 9 Hackathon submission is a tool designed to give Badgers clearer insight into how their favorite token is being adopted by the DeFi ecosystem. Our application does this by crawling the liquidity pools on Uniswap that have either wBTC or renBTC as a base token. At a quick glance, if we measure adoption by the number of transactions and tokens deployed over time,  market acceptance has definitely been going up. At the time of this snapshot, there were nearly 170 pools with at least one BTC denominated token and these pools contained more than $2,300,000 in liquidity on average.")
 
 knitr::include_graphics("images/Badger black text.png")
 
