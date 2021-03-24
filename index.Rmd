@@ -1,0 +1,291 @@
+---
+title: "Bitcoin Defi Liquidity Dashboard - Gitcoin Round 9 Badger Hackathon"
+output: 
+  flexdashboard::flex_dashboard:
+    logo: images/combine.png
+    orientation: rows
+    vertical_layout: fill
+runtime: shiny
+---
+
+<style>                     
+.navbar {
+  background-color:#F2A52B;
+}
+
+.navbar-inverse .navbar-nav>.active>a, .navbar-inverse .navbar-nav>.active>a:hover, .navbar-inverse .navbar-nav>.active>a:focus {
+  background-color:#d18700;
+}
+
+.navbar-inverse .navbar-nav>li>a:hover, .navbar-inverse .navbar-nav>li>a:focus {
+  background-color:#ffcb6e
+}
+
+.bg-primary {
+background-color:#F2A52B;
+}
+
+.table.dataTable tbody td.active, .table.dataTable tbody tr.active td {
+  background-color:#F2A52B;
+}
+
+#section-sidebar {
+  background-color: #fff4e0;
+}
+</style>              
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(lubridate)
+library(shiny)
+library(thematic)
+library(knitr)
+library(DT)
+library(omnitheme)
+
+thematic_shiny()
+
+wbtc_pairs <- readRDS("data/wbtc_pairs.rds") %>%
+    as_tibble() %>%
+    mutate(across(where(is.character), readr::parse_guess)) %>%
+    mutate(BTC = "wBTC")
+
+renbtc_pairs <- readRDS("data/renbtc_pairs.rds") %>%
+    as_tibble() %>%
+    mutate(across(where(is.character), readr::parse_guess)) %>%
+    mutate(BTC = "renBTC")
+```
+
+Sidebar {.sidebar}
+=====================================
+
+```{r, fig.width=2}
+h4("Introduction")
+
+helpText("Our Gitcoin Grant Round 9 Hackathon submission is a tool designed to give Badgers clearer insight into how their favorite token is being adopted by the DeFi ecosystem. Our application does this by crawling the liquidity pools on Uniswap that have either wBTC or renBTC as a base token. At a quick glance, if we measure adoption by the number of transactions and tokens deployed over time,  market acceptance has definitely been going up. At the time of this snapshot, there were over 180 pools with at least one BTC denominated token and these pools contained more than $2,200,000 in liquidity on average.")
+
+knitr::include_graphics("images/Badger black text.png")
+
+hr()
+
+h4("Configuration")
+selectInput("data", "Data", choices = c("wBTC", "renBTC", "wBTC + renBTC" = "both"))
+
+hr()
+
+helpText("Updated 3/22/2021")
+
+my_dat1 <- reactive({
+    if (input$data == "both") {
+        return(wbtc_pairs %>% bind_rows(renbtc_pairs))
+    } else if (input$data == "wBTC") {
+        return(wbtc_pairs)
+    } else {
+        return(renbtc_pairs)
+    }
+})
+
+my_dat <- reactive({
+    my_dat1()
+})
+```
+
+Overview
+=====================================
+
+Row {data-height=550}
+-----------------------------------------------------------------------
+
+### Pairs over Time
+
+```{r, fig.width=10, fig.height=6}
+renderPlot({
+    my_dat() %>%
+    mutate(date = as_date(Pair_Origin_Timestamp),
+           week = round_date(date, unit = "week")) %>%
+    group_by(week) %>%
+    summarise(count = n()) %>%
+    complete(week = full_seq(week, period = 7), fill = list(count = 0)) %>%
+
+    ggplot(aes(x = week, y = count)) +
+        geom_point() +
+        geom_line() +
+        scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
+        scale_x_date(date_breaks = "1 week", date_labels = "%b %d") +
+        labs(
+            title = "Number of Liquidity Pools created where at least one token in the pair is a wrapped Bitcoin",
+            subtitle = "For all accessible Uniswap contracts deployed with either renBTC or wBTC as a token",
+            x = "Date"
+        ) +
+        theme(
+            axis.text.x = element_text(angle = 30, hjust = 1)
+        ) +
+    watermark_img("images/yellow_hat_badger.png", location = "center", alpha = 0.1, width = 120)
+})
+```
+
+### Cumulative Pairs over Time
+
+```{r, fig.width=10, fig.height=6}
+renderPlot({
+    my_dat() %>%
+    mutate(date = as_date(Pair_Origin_Timestamp),
+           week = round_date(date, unit = "week")) %>%
+    group_by(week) %>%
+    summarise(count = n()) %>%
+    complete(week = full_seq(week, period = 7), fill = list(count = 0)) %>%
+    mutate(count = cumsum(count)) %>%
+        
+    ggplot(aes(x = week, y = count)) +
+        geom_point() +
+        geom_line() +
+        scale_y_continuous(breaks = scales::pretty_breaks(n = 10)) +
+        scale_x_date(date_breaks = "1 week", date_labels = "%b %d") +
+        labs(
+            title = "Cumulative Number of Liquidity Pools created where at least one token in the pair is a wrapped Bitcoin",
+            subtitle = "For all accessible Uniswap contracts deployed with either renBTC or wBTC as a token",
+            x = "Date",
+            y = "Number of Pairs Deployed"
+        ) +
+        theme(
+            axis.text.x = element_text(angle = 30, hjust = 1)
+        ) +
+    watermark_img("images/mario.png", location = "center", alpha = 0.2, width = 150)
+})
+```
+
+Row {data-height=250}
+-----------------------------------------------------------------------
+
+### Number of Pairs
+
+```{r}
+renderValueBox({
+    valueBox(nrow(my_dat()), icon = "fa-handshake")
+})
+```
+
+### Average Weekly Pairs
+
+```{r}
+renderValueBox({
+        x <-     my_dat() %>%
+    mutate(date = as_date(Pair_Origin_Timestamp),
+           week = round_date(date, unit = "week")) %>%
+    group_by(week) %>%
+    summarise(count = n()) %>%
+    complete(week = full_seq(week, period = 7), fill = list(count = 0)) %>%
+        ungroup() %>%
+        summarise(Weekly = mean(count)) %>%
+        pull(Weekly)
+    
+    valueBox(round(x, digits = 2), icon = "fa-calendar")
+})
+```
+
+
+### Total Number of Transactions
+
+```{r}
+renderValueBox({
+    valueBox(scales::comma(sum(my_dat()$Pair_Tx_Count)), icon = "fa-check")
+})
+```
+
+### Average Number of Transactions
+
+```{r}
+renderValueBox({
+    valueBox(round(mean(my_dat()$Pair_Tx_Count), digits = 2), icon = "fa-check-circle")
+})
+```
+
+### Median Number of Transactions
+
+```{r}
+renderValueBox({
+    valueBox(round(median(my_dat()$Pair_Tx_Count), digits = 2), icon = "fa-check-circle")
+})
+```
+
+Row {data-height=250}
+-----------------------------------------------------------------------
+
+### Most Recent Pair
+
+```{r}
+renderValueBox({
+    mindat <- which.max(my_dat()$Pair_Origin_Timestamp)
+    mylabel <- paste0(my_dat()$Token_Name[mindat], " (", my_dat()$Token_Symbol[mindat], ")")
+    
+    valueBox(mylabel, icon = "fa-retweet")
+})
+```
+
+### Total Liquidity
+
+```{r}
+renderValueBox({
+    valueBox(scales::dollar(sum(my_dat()$Liquidity_USD)), icon = "fa-dollar-sign")
+})
+```
+
+### Average Liquidity
+
+```{r}
+renderValueBox({
+    valueBox(scales::dollar(mean(my_dat()$Liquidity_USD)), icon = "fa-money-bill")
+})
+```
+
+### Median Liquidity
+
+```{r}
+renderValueBox({
+    valueBox(scales::dollar(median(my_dat()$Liquidity_USD)), icon = "fa-money-bill")
+})
+```
+
+Pairs
+===================================== 
+
+Row
+-----------------------------------------------------------------------
+
+### Tabular
+
+```{r, results='asis', echo=FALSE}
+DT::renderDataTable({
+   datatable(style = "bootstrap", options = list(paging=FALSE, scrollY="200px"), my_dat() %>%
+        mutate(Pair = paste0(BTC, "/", Token_Symbol)) %>%
+        select(Name = Token_Name, Ticker = Token_Symbol, Pair, `Liquidity ($)` = Liquidity_USD, `# of Transactions` = Pair_Tx_Count) %>%
+        arrange(desc(`Liquidity ($)`))) %>%
+        formatCurrency(c('Liquidity ($)'))
+})
+```
+
+Row
+-----------------------------------------------------------------------
+
+### Graphical
+
+```{r, results='asis', echo=FALSE}
+renderPlot({
+  range <- 0:16
+  if (input$data == "renBTC") range <- 0:8
+  
+  myscales <- scales::dollar
+  
+    my_dat() %>%
+        mutate(Pair = paste0(BTC, "/", Token_Symbol)) %>%
+        select(Name = Token_Name, Pair, `Liquidity ($)` = Liquidity_USD, `# of Transactions` = Pair_Tx_Count) %>%
+        arrange(desc(`Liquidity ($)`)) %>%
+    slice(1:20) %>%
+        mutate(Pair = factor(Pair, levels = Pair)) %>%
+    ggplot(aes(x = Pair, y = `Liquidity ($)`)) +
+        geom_bar(stat = "identity", fill = "#F2A52B") +
+        scale_y_continuous(labels = myscales, breaks = 10^(range), trans=scales::pseudo_log_trans(base = 10)) +
+        watermark_img("images/badger side.png", x = 0.9, y = 0.8, alpha = 0.2, width = 150)
+})
+```
