@@ -1,4 +1,4 @@
-# gitcoin-grants-round-9-badger-hackathon
+# Gitcoin Grants Round 9 Badger Hackathon
 
 Our Gitcoin Grants Round 9 Badger Hackathon Submission
 
