@@ -1,4 +1,4 @@
-# Bitcoin DeFi Liquidity Dashboard
+# A Bitcoin DeFi Liquidity Dashboard
 
  Our Gitcoin Grants Round 9 Badger Hackathon Submission
 
