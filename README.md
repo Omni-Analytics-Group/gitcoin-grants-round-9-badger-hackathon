@@ -2,7 +2,10 @@
 
 <a href="https://crypto.omnianalytics.io/apps/git-9-badger-hack/" target="_blank"><img src="images/screenshot.png"/></a>
 
+<div align="center">
 https://crypto.omnianalytics.io/apps/git-9-badger-hack/
+</div>
+
 
 # Description
 
